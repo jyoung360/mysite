@@ -37,6 +37,7 @@ def device(request, device_id):
         body = json.loads(body_unicode)
         function_name = body.get('function_name')
         access_token = body.get('access_token')
+        arg = body.get('arg')
         
         if not function_name:
             return JsonResponse({"REASON": "Invalid action provided"}, status=400)
@@ -49,13 +50,13 @@ def device(request, device_id):
             # Add your code to turn on the device here and the respond back.
             post_data = {
                 'access_token':access_token,
-                'arg':0,
+                'arg':arg,
             } 
             endpoint = '%s/devices/%s/%s' % (API_ENDPOINT, device_id, function_name)
-            r = http.request('POST', endpoint, fields=post_data)
+            r = http.request_encode_body('POST', endpoint, fields=post_data, encode_multipart=False)
             particle_response_data = json.loads(r.data.decode('utf-8'))
             if(r.status == 200):
-                return JsonResponse({ "device" : { "UUID": id, "STATUS": "pending", "details": particle_response_data}})
+                return JsonResponse({ "device" : { "UUID": device_id, "STATUS": "pending", "details": particle_response_data}})
             else:
                 return JsonResponse({ "STATUS" : "error", "code": r.status, "details": particle_response_data})
 
