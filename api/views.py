@@ -6,7 +6,12 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 import uuid
 import urllib3
+from datetime import datetime, date, time
 http = urllib3.PoolManager()
+from api.models import Booking
+from django.utils import timezone
+import pytz
+
 API_ENDPOINT = "https://api.particle.io/v1"
 
 @csrf_exempt 
@@ -21,12 +26,52 @@ def login(request):
         return JsonResponse({ "STATUS": "success", "TOKEN": uuid.uuid4()})
 
 @csrf_exempt 
+def booking(request, booking_id):
+    # GET information about the status of a device.  Some way of securing this so only the app can 
+    # access it will eventually be needed
+    if request.method == 'GET': 
+        try:
+            booking = Booking.objects.get(pk=booking_id)
+            return JsonResponse(booking.toJSON())
+        except Booking.DoesNotExist:
+            return JsonResponse({}, status=404)
+        # if(booking):
+        #     return JsonResponse(booking.toJSON())
+        # else:
+        #     return JsonResponse({}, status=404)
+
+    # Make request to turn on a device.  A function should respond back with a value from the arduino
+    # indicating success and this can be passed back to app
+    elif request.method == 'POST': 
+        body_unicode = request.body.decode('utf-8')
+        body = json.loads(body_unicode)
+        StartTime = body.get('StartTime')
+        EndTime = body.get('EndTime')
+        IDUser = body.get('IDUser')
+        
+        if not StartTime:
+            return JsonResponse({"REASON": "Invalid StartTime provided"}, status=400)
+        elif not EndTime:
+            return JsonResponse({"REASON": "Invalid EndTime provided"}, status=400)
+        elif not IDUser:
+            return JsonResponse({"REASON": "Invalid IDUser provided"}, status=400)
+        else:
+            # this is our "happy path", once everything checks out, we send call to turn on device
+            # Add your code to turn on the device here and the respond back.
+            booking = Booking(IDUser=IDUser,StartTime=StartTime,EndTime=EndTime)
+            resp = booking.save()
+            print(resp)
+            return JsonResponse(booking.toJSON())
+
+@csrf_exempt 
 def device(request, device_id):
     # GET information about the status of a device.  Some way of securing this so only the app can 
     # access it will eventually be needed
     if request.method == 'GET': 
-        if(id == 1234):
-            return JsonResponse({ "STATUS": "available"})
+        all_entries = Booking.objects.filter(IDUser="8305a3b2-72f4-4d5c-bd23-c7a0e746e183")
+        print(all_entries)
+        if(device_id == 1234):
+            return JsonResponse({ "STATUS": "available", "booking": booking.toJSON()})
         else:
             return JsonResponse({}, status=404)
 
